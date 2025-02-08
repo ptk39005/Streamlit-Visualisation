@@ -35,7 +35,8 @@ def initialize_firebase():
             })
             st.session_state.db = firestore.client()
             st.session_state.storage_bucket = storage.bucket()
-            bucket = get_storage_bucket()
+            st.session_state.firebase_initialized = True  # Set only if initialization succeeds
+
 
             return True
         except Exception as e:
@@ -50,9 +51,10 @@ def get_firestore_client():
     return st.session_state.db
 
 def get_storage_bucket():
-    """Get Storage bucket from session state"""
-    if 'storage_bucket' not in st.session_state:
-        initialize_firebase()
+    if 'storage_bucket' not in st.session_state or st.session_state.storage_bucket is None:
+        if not initialize_firebase():  # Try to reinitialize Firebase if it's not initialized
+            st.error("Firebase initialization failed. Cannot get storage bucket.")
+            return None
     return st.session_state.storage_bucket
 
 # Initialize Firebase when the app starts
@@ -373,10 +375,14 @@ class VisualizationSession:
 def main():
     # Set page config as the first command
     # Get parameters from URL
+    
     query_params = st.query_params
     session_id = query_params.get("session_id", [None])[0]
     mode = query_params.get("mode", ["full"])[0]  # 'preview' or 'full'
-    
+    # Initialize Firebase when the app starts
+    if 'firebase_initialized' not in st.session_state:
+        st.session_state.firebase_initialized = initialize_firebase()
+
     if not session_id:
         st.error("No session ID provided")
         return

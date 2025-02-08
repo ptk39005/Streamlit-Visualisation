@@ -14,23 +14,9 @@ def initialize_firebase():
     """Initialize Firebase if not already initialized"""
     if not firebase_admin._apps:
         try:
-            # Use secrets instead of file
-            firebase_creds = {
-                "type": st.secrets["firebase"]["type"],
-                "project_id": st.secrets["firebase"]["project_id"],
-                "private_key_id": st.secrets["firebase"]["private_key_id"],
-                "private_key": st.secrets["firebase"]["private_key"].replace('\\n', '\n'),
-                "client_email": st.secrets["firebase"]["client_email"],
-                "client_id": st.secrets["firebase"]["client_id"],
-                "auth_uri": st.secrets["firebase"]["auth_uri"],
-                "token_uri": st.secrets["firebase"]["token_uri"],
-                "auth_provider_x509_cert_url": st.secrets["firebase"]["auth_provider_x509_cert_url"],
-                "client_x509_cert_url": st.secrets["firebase"]["client_x509_cert_url"]
-            }
-            
-            cred = credentials.Certificate(firebase_creds)
+            cred = credentials.Certificate('file-processing-app-f7c073da43a3.json')
             firebase_admin.initialize_app(cred, {
-                'storageBucket': st.secrets["firebase"]["storage_bucket"]
+                'storageBucket': 'file-processing-app.firebasestorage.app'
             })
             st.session_state.db = firestore.client()
             st.session_state.storage_bucket = storage.bucket()

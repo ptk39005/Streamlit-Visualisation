@@ -391,8 +391,8 @@ def main():
     st.write("Session State Debug After Initialization:", st.session_state)
 
     query_params = st.query_params
-    session_id = query_params.get("session_id", [None])[0]
-    mode = query_params.get("mode", ["full"])[0]  # 'preview' or 'full'
+    session_id = query_params.get("session_id", [None])
+    mode = query_params.get("mode", ["full"])  # 'preview' or 'full'
 
     if not session_id:
         st.error("No session ID provided")

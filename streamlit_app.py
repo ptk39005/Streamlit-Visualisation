@@ -15,6 +15,8 @@ st.set_page_config(page_title="Visualization Creator", layout="wide")
 
 def initialize_firebase():
     """Initialize Firebase if not already initialized"""
+    st.write(repr(st.secrets["firebase_service_account"]["private_key"]))
+
     if not firebase_admin._apps:
         try:
             service_account = {

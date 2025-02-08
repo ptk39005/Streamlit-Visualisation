@@ -10,11 +10,13 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from firebase_admin.exceptions import FirebaseError
 
+service_account = st.secrets["service_account"]
+
 def initialize_firebase():
     """Initialize Firebase if not already initialized"""
     if not firebase_admin._apps:
         try:
-            cred = credentials.Certificate('file-processing-app-f7c073da43a3.json')
+            cred = credentials.Certificate(service_account)
             firebase_admin.initialize_app(cred, {
                 'storageBucket': 'file-processing-app.firebasestorage.app'
             })

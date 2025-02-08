@@ -31,15 +31,12 @@ def initialize_firebase():
             }
             cred = credentials.Certificate(service_account)
             firebase_admin.initialize_app(cred, {
-                'storageBucket': 'file-processing-app.appspot.com'  # Correct the storage bucket URL if needed
+                'storageBucket': 'file-processing-app.appspot.com'  # Ensure this is correct
             })
 
-            # Ensure Firebase clients are initialized in session state
-            if 'db' not in st.session_state:
-                st.session_state.db = firestore.client()
-            
-            if 'storage_bucket' not in st.session_state:
-                st.session_state.storage_bucket = storage.bucket()
+            # Explicitly initialize session state variables
+            st.session_state.db = firestore.client()
+            st.session_state.storage_bucket = storage.bucket()
 
             st.session_state.firebase_initialized = True  # Set only if initialization succeeds
             return True
@@ -48,7 +45,11 @@ def initialize_firebase():
             st.error(f"Failed to initialize Firebase: {str(e)}")
             return False
     
-    return True  # Return True if Firebase is already initialized
+    # Ensure storage bucket is set even if Firebase is already initialized
+    if 'storage_bucket' not in st.session_state:
+        st.session_state.storage_bucket = storage.bucket()
+
+    return True
 
 
 def get_firestore_client():
@@ -58,18 +59,14 @@ def get_firestore_client():
     return st.session_state.db
 
 def get_storage_bucket():
-    """Get Storage bucket from session state"""
+    """Ensure Firebase is initialized before accessing storage bucket"""
     if 'storage_bucket' not in st.session_state or st.session_state.storage_bucket is None:
-        if not initialize_firebase():  # Try to reinitialize Firebase if it's not initialized
+        st.warning("Storage bucket is missing. Reinitializing Firebase...")
+        if not initialize_firebase():  # Try to reinitialize Firebase
             st.error("Firebase initialization failed. Cannot get storage bucket.")
-            return None  # Prevent further errors by returning None
+            return None  # Prevent further errors
     
     return st.session_state.storage_bucket
-
-
-# Initialize Firebase when the app starts
-if 'firebase_initialized' not in st.session_state:
-    st.session_state.firebase_initialized = initialize_firebase()
 
 class VisualizationSession:
     def __init__(self, user_email):
@@ -386,9 +383,12 @@ def main():
     # Set page config as the first command
     # Get parameters from URL
     # Ensure Firebase is initialized when the app starts
-    if 'firebase_initialized' not in st.session_state:
+    st.write("Session State Debug Before Initialization:", st.session_state)
+
+    if 'firebase_initialized' not in st.session_state or not st.session_state.firebase_initialized:
         st.session_state.firebase_initialized = initialize_firebase()
-    st.write("Session State Debug:", st.session_state)
+
+    st.write("Session State Debug After Initialization:", st.session_state)
 
     query_params = st.query_params
     session_id = query_params.get("session_id", [None])[0]

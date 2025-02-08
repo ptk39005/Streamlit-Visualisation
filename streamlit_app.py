@@ -383,13 +383,6 @@ def main():
     # Set page config as the first command
     # Get parameters from URL
     # Ensure Firebase is initialized when the app starts
-    st.write("Session State Debug Before Initialization:", st.session_state)
-
-    if 'firebase_initialized' not in st.session_state or not st.session_state.firebase_initialized:
-        st.session_state.firebase_initialized = initialize_firebase()
-
-    st.write("Session State Debug After Initialization:", st.session_state)
-
     query_params = st.query_params
     session_id = query_params.get("session_id", [None])
     mode = query_params.get("mode", ["full"])  # 'preview' or 'full'

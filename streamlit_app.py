@@ -18,31 +18,38 @@ def initialize_firebase():
     if not firebase_admin._apps:
         try:
             service_account = {
-            "type": st.secrets["firebase_service_account"]["type"],
-            "project_id": st.secrets["firebase_service_account"]["project_id"],
-            "private_key_id": st.secrets["firebase_service_account"]["private_key_id"],
-            "private_key": st.secrets["firebase_service_account"]["private_key"],
-            "client_email": st.secrets["firebase_service_account"]["client_email"],
-            "client_id": st.secrets["firebase_service_account"]["client_id"],
-            "auth_uri": st.secrets["firebase_service_account"]["auth_uri"],
-            "token_uri": st.secrets["firebase_service_account"]["token_uri"],
-            "auth_provider_x509_cert_url": st.secrets["firebase_service_account"]["auth_provider_x509_cert_url"],
-            "client_x509_cert_url": st.secrets["firebase_service_account"]["client_x509_cert_url"]
-        }
+                "type": st.secrets["firebase_service_account"]["type"],
+                "project_id": st.secrets["firebase_service_account"]["project_id"],
+                "private_key_id": st.secrets["firebase_service_account"]["private_key_id"],
+                "private_key": st.secrets["firebase_service_account"]["private_key"],
+                "client_email": st.secrets["firebase_service_account"]["client_email"],
+                "client_id": st.secrets["firebase_service_account"]["client_id"],
+                "auth_uri": st.secrets["firebase_service_account"]["auth_uri"],
+                "token_uri": st.secrets["firebase_service_account"]["token_uri"],
+                "auth_provider_x509_cert_url": st.secrets["firebase_service_account"]["auth_provider_x509_cert_url"],
+                "client_x509_cert_url": st.secrets["firebase_service_account"]["client_x509_cert_url"]
+            }
             cred = credentials.Certificate(service_account)
             firebase_admin.initialize_app(cred, {
-                'storageBucket': 'file-processing-app.firebasestorage.app'
+                'storageBucket': 'file-processing-app.appspot.com'  # Correct the storage bucket URL if needed
             })
-            st.session_state.db = firestore.client()
-            st.session_state.storage_bucket = storage.bucket()
+
+            # Ensure Firebase clients are initialized in session state
+            if 'db' not in st.session_state:
+                st.session_state.db = firestore.client()
+            
+            if 'storage_bucket' not in st.session_state:
+                st.session_state.storage_bucket = storage.bucket()
+
             st.session_state.firebase_initialized = True  # Set only if initialization succeeds
-
-
             return True
+        
         except Exception as e:
             st.error(f"Failed to initialize Firebase: {str(e)}")
             return False
-    return True
+    
+    return True  # Return True if Firebase is already initialized
+
 
 def get_firestore_client():
     """Get Firestore client from session state"""
@@ -51,11 +58,14 @@ def get_firestore_client():
     return st.session_state.db
 
 def get_storage_bucket():
+    """Get Storage bucket from session state"""
     if 'storage_bucket' not in st.session_state or st.session_state.storage_bucket is None:
         if not initialize_firebase():  # Try to reinitialize Firebase if it's not initialized
             st.error("Firebase initialization failed. Cannot get storage bucket.")
-            return None
+            return None  # Prevent further errors by returning None
+    
     return st.session_state.storage_bucket
+
 
 # Initialize Firebase when the app starts
 if 'firebase_initialized' not in st.session_state:
@@ -375,13 +385,14 @@ class VisualizationSession:
 def main():
     # Set page config as the first command
     # Get parameters from URL
-    
+    # Ensure Firebase is initialized when the app starts
+    if 'firebase_initialized' not in st.session_state:
+        st.session_state.firebase_initialized = initialize_firebase()
+    st.write("Session State Debug:", st.session_state)
+
     query_params = st.query_params
     session_id = query_params.get("session_id", [None])[0]
     mode = query_params.get("mode", ["full"])[0]  # 'preview' or 'full'
-    # Initialize Firebase when the app starts
-    if 'firebase_initialized' not in st.session_state:
-        st.session_state.firebase_initialized = initialize_firebase()
 
     if not session_id:
         st.error("No session ID provided")

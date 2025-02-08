@@ -11,7 +11,6 @@ from firebase_admin import credentials, firestore
 from firebase_admin.exceptions import FirebaseError
 
 service_account = st.secrets["service_account"]
-st.set_page_config(page_title="Visualization Creator", layout="wide")
 
 def initialize_firebase():
     """Initialize Firebase if not already initialized"""
@@ -360,7 +359,7 @@ def main():
     # Set page config as the first command
     
     # Get parameters from URL
-    query_params = st.experimental_get_query_params()
+    query_params = st.query_params()
     session_id = query_params.get("session_id", [None])[0]
     mode = query_params.get("mode", ["full"])[0]  # 'preview' or 'full'
     
@@ -416,4 +415,6 @@ def main():
         st.error(f"Error: {str(e)}")
 
 if __name__ == "__main__":
+    st.set_page_config(page_title="Visualization Creator", layout="wide")
+
     main() 

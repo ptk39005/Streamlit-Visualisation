@@ -15,8 +15,6 @@ st.set_page_config(page_title="Visualization Creator", layout="wide")
 
 def initialize_firebase():
     """Initialize Firebase if not already initialized"""
-    st.write(repr(st.secrets["firebase_service_account"]["private_key"]))
-
     if not firebase_admin._apps:
         try:
             service_account = {
@@ -37,6 +35,8 @@ def initialize_firebase():
             })
             st.session_state.db = firestore.client()
             st.session_state.storage_bucket = storage.bucket()
+            bucket = get_storage_bucket()
+
             return True
         except Exception as e:
             st.error(f"Failed to initialize Firebase: {str(e)}")

@@ -10,6 +10,8 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from firebase_admin.exceptions import FirebaseError
 
+st.set_page_config(page_title="Visualization Creator", layout="wide")
+
 service_account = st.secrets["service_account"]
 
 def initialize_firebase():
@@ -414,6 +416,4 @@ def main():
         st.error(f"Error: {str(e)}")
 
 if __name__ == "__main__":
-    st.set_page_config(page_title="Visualization Creator", layout="wide")
-
     main() 

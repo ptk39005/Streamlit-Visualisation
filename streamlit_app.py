@@ -11,6 +11,7 @@ from firebase_admin import credentials, firestore
 from firebase_admin.exceptions import FirebaseError
 
 service_account = st.secrets["service_account"]
+st.set_page_config(page_title="Visualization Creator", layout="wide")
 
 def initialize_firebase():
     """Initialize Firebase if not already initialized"""
@@ -356,7 +357,7 @@ class VisualizationSession:
             )
 
 def main():
-    st.set_page_config(page_title="Visualization Creator", layout="wide")
+    # Set page config as the first command
     
     # Get parameters from URL
     query_params = st.experimental_get_query_params()

@@ -394,6 +394,9 @@ def main():
     try:
         # Load session data from Firebase
         bucket = get_storage_bucket()
+
+        print(f"Using bucket: {bucket.name}")
+
         config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")
         session_data = json.loads(config_blob.download_as_string())
         

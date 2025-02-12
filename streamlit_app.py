@@ -25,7 +25,7 @@ def initialize_firebase():
                 st.error("Firebase credentials are missing in Streamlit secrets.")
                 return False
 
-            service_account = st.secrets["firebase_service_account"]
+            service_account = dict(st.secrets["firebase_service_account"])
 
             # Validate critical keys
             required_keys = [

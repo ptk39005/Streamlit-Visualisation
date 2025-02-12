@@ -34,7 +34,7 @@ def initialize_firebase():
 
             # Initialize Firestore
             st.session_state.db = firestore.client()
-            st.info("✅ Firestore client initialized.")
+            #st.info("✅ Firestore client initialized.")
 
             # ✅ Correct way to initialize Google Cloud Storage
             storage_client = storage.Client.from_service_account_info(service_account)  
@@ -405,8 +405,8 @@ def main():
         # Load session data from Firebase
         bucket = get_storage_bucket()
 
-        st.info(f"Using bucket: {bucket.name}")
-        st.info(f"session : {session_id}")
+        #st.info(f"Using bucket: {bucket.name}")
+        #st.info(f"session : {session_id}")
         config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")
 
         if not config_blob.exists():

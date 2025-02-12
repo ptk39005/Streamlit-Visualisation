@@ -9,6 +9,7 @@ from io import BytesIO
 import firebase_admin
 from firebase_admin import credentials, firestore
 from firebase_admin.exceptions import FirebaseError
+import time
 
 st.set_page_config(page_title="Visualization Creator", layout="wide")
 
@@ -389,7 +390,6 @@ class VisualizationSession:
 def main():
     # Set page config as the first command
     # Get parameters from URL
-    # Ensure Firebase is initialized when the app starts
     query_params = st.query_params
     session_id = query_params.get("session_id", [None])
     mode = query_params.get("mode", ["full"])  # 'preview' or 'full'
@@ -405,27 +405,32 @@ def main():
             st.error("Could not access storage bucket. Please check your Firebase configuration.")
             return
 
-        # Log information (using st.write instead of debug)
-        st.write(f"Accessing configuration: streamlit_sessions/{session_id}/config.json")
-        
-        config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")
-        if not config_blob.exists():
-            st.error(f"Configuration file not found for session: {session_id}")
-            return
+        # For preview sessions, poll for configuration
+        if session_id.startswith('preview_'):
+            config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")
+            start_time = time.time()
+            config_found = False
             
-        session_data = json.loads(config_blob.download_as_string())
-        
-        # Load data
-        if mode == "preview":
-            # For preview, load data directly from session storage
-            data_blob = bucket.blob(f"streamlit_sessions/{session_id}/data.csv")
-            df = pd.read_csv(BytesIO(data_blob.download_as_bytes()))
+            with st.spinner('Waiting for configuration...'):
+                while time.time() - start_time < 15:  # Poll for 15 seconds
+                    if config_blob.exists():
+                        config_found = True
+                        session_data = json.loads(config_blob.download_as_string())
+                        break
+                    time.sleep(1)  # Wait 1 second before next check
+                
+                if not config_found:
+                    st.error("Configuration not found after 15 seconds. Please try again.")
+                    return
         else:
-            # For full mode, load from original file
-            df = load_data_from_firebase(bucket, session_data["email"], 
-                                       session_data["fileName"], 
-                                       session_data.get("sheetName"))
-
+            # For non-preview sessions, load existing config
+            st.write(f"Accessing configuration: streamlit_sessions/{session_id}/config.json")
+            config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")
+            if not config_blob.exists():
+                st.error(f"Configuration file not found for session: {session_id}")
+                return
+            session_data = json.loads(config_blob.download_as_string())
+        
         # Initialize visualization session
         viz_session = VisualizationSession(session_data["email"])
         
@@ -436,26 +441,8 @@ def main():
             # For full mode, render the full interface
             viz_session.render_visualization_interface(df)
             
-            # Save and Create New buttons (only in full mode)
-            col1, col2 = st.columns(2)
-            if col1.button("Save"):
-                config = {
-                    "type": st.session_state.get("visualization_type"),
-                    "title": st.session_state.get("chart_title"),
-                    # Add other config details
-                }
-                saved_path = viz_session.save_visualization(config)
-                st.success(f"Visualization saved successfully!")
-                
-            if col2.button("Create New Visualization"):
-                st.session_state.line_bar_series = []
-                st.session_state.horizontal_bar_series = []
-                st.session_state.current_visualization = None
-                st.experimental_rerun()
-            
     except Exception as e:
         st.error(f"Error loading session data: {str(e)}")
-        # Using st.exception() for proper error display
         st.exception(e)
 
 if __name__ == "__main__":

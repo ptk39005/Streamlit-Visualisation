@@ -66,7 +66,14 @@ def get_storage_bucket():
             st.error("Firebase initialization failed. Cannot get storage bucket.")
             return None  # Prevent further errors
     
-    return st.session_state.storage_bucket
+    try:
+        # Verify bucket exists and is accessible
+        bucket = st.session_state.storage_bucket
+        bucket.exists()  # This will throw an exception if bucket is not accessible
+        return bucket
+    except Exception as e:
+        st.error(f"Error accessing storage bucket: {str(e)}")
+        return None
 
 class VisualizationSession:
     def __init__(self, user_email):
@@ -394,7 +401,18 @@ def main():
     try:
         # Load session data from Firebase
         bucket = get_storage_bucket()
+        if not bucket:
+            st.error("Could not access storage bucket. Please check your Firebase configuration.")
+            return
+
+        # Debug information
+        st.debug(f"Attempting to access: streamlit_sessions/{session_id}/config.json")
+        
         config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")
+        if not config_blob.exists():
+            st.error(f"Configuration file not found for session: {session_id}")
+            return
+            
         session_data = json.loads(config_blob.download_as_string())
         
         # Load data
@@ -436,7 +454,8 @@ def main():
                 st.experimental_rerun()
             
     except Exception as e:
-        st.error(f"Error: {str(e)}")
+        st.error(f"Error loading session data: {str(e)}")
+        st.error("Full error details:", exc_info=True)  # This will show the full traceback
 
 if __name__ == "__main__":
     main() 

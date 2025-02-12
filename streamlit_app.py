@@ -396,8 +396,13 @@ def main():
         bucket = get_storage_bucket()
 
         st.info(f"Using bucket: {bucket.name}")
-
+        st.info(f"session : {session_id}")
         config_blob = bucket.blob(f"streamlit_sessions/{session_id[0]}/config.json")
+
+        if not config_blob.exists():
+            st.error(f"Config file not found: streamlit_sessions/{session_id[0]}/config.json")
+            return
+        
         session_data = json.loads(config_blob.download_as_string())
         
         # Load data

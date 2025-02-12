@@ -394,7 +394,7 @@ def get_available_files(user_email):
         return []
     
     files = []
-    blobs = bucket.list_blobs(prefix=f"{user_email}/data/")
+    blobs = bucket.list_blobs(prefix=f"/")
     for blob in blobs:
         # Extract just the filename from the full path
         filename = blob.name.split('/')[-1]

@@ -12,23 +12,32 @@ from firebase_admin.exceptions import FirebaseError
 
 st.set_page_config(page_title="Visualization Creator", layout="wide")
 
+import streamlit as st
+import firebase_admin
+from firebase_admin import credentials, firestore, storage
 
 def initialize_firebase():
     """Initialize Firebase if not already initialized"""
     if not firebase_admin._apps:
         try:
-            service_account = {
-                "type": st.secrets["firebase_service_account"]["type"],
-                "project_id": st.secrets["firebase_service_account"]["project_id"],
-                "private_key_id": st.secrets["firebase_service_account"]["private_key_id"],
-                "private_key": st.secrets["firebase_service_account"]["private_key"],
-                "client_email": st.secrets["firebase_service_account"]["client_email"],
-                "client_id": st.secrets["firebase_service_account"]["client_id"],
-                "auth_uri": st.secrets["firebase_service_account"]["auth_uri"],
-                "token_uri": st.secrets["firebase_service_account"]["token_uri"],
-                "auth_provider_x509_cert_url": st.secrets["firebase_service_account"]["auth_provider_x509_cert_url"],
-                "client_x509_cert_url": st.secrets["firebase_service_account"]["client_x509_cert_url"]
-            }
+            # Ensure secrets are available before using them
+            if "firebase_service_account" not in st.secrets:
+                st.error("Firebase credentials are missing in Streamlit secrets.")
+                return False
+
+            service_account = st.secrets["firebase_service_account"]
+
+            # Validate critical keys
+            required_keys = [
+                "type", "project_id", "private_key_id", "private_key", "client_email",
+                "client_id", "auth_uri", "token_uri", "auth_provider_x509_cert_url", "client_x509_cert_url"
+            ]
+            for key in required_keys:
+                if key not in service_account:
+                    st.error(f"Missing Firebase credential key: {key}")
+                    return False
+
+            # Initialize Firebase with the correct credentials
             cred = credentials.Certificate(service_account)
             firebase_admin.initialize_app(cred, {
                 'storageBucket': 'file-processing-app.appspot.com'  # Ensure this is correct
@@ -39,17 +48,35 @@ def initialize_firebase():
             st.session_state.storage_bucket = storage.bucket()
 
             st.session_state.firebase_initialized = True  # Set only if initialization succeeds
+            st.success("Firebase initialized successfully.")
             return True
-        
+
+        except firebase_admin.exceptions.FirebaseError as fe:
+            st.error(f"FirebaseError: {fe}")
+            print(f"[ERROR] FirebaseError: {fe}")
+            return False
+
+        except ValueError as ve:
+            st.error(f"Invalid Firebase configuration: {ve}")
+            print(f"[ERROR] ValueError (Invalid Config): {ve}")
+            return False
+
         except Exception as e:
             st.error(f"Failed to initialize Firebase: {str(e)}")
+            print(f"[ERROR] Unexpected error initializing Firebase: {e}")
             return False
-    
+
     # Ensure storage bucket is set even if Firebase is already initialized
     if 'storage_bucket' not in st.session_state:
-        st.session_state.storage_bucket = storage.bucket()
+        try:
+            st.session_state.storage_bucket = storage.bucket()
+        except Exception as e:
+            st.error(f"Error accessing Firebase Storage: {e}")
+            print(f"[ERROR] Firebase Storage access error: {e}")
+            return False
 
     return True
+
 
 
 def get_firestore_client():

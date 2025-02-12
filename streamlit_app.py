@@ -100,7 +100,7 @@ def get_storage_bucket():
         if not initialize_firebase():  # Try to reinitialize Firebase
             st.error("Firebase initialization failed. Cannot access storage bucket.")
             logger.error("Failed to initialize Firebase when accessing storage bucket.")
-            return None  # Prevent further errors
+            #return None  # Prevent further errors
 
     try:
         bucket = st.session_state.storage_bucket

@@ -506,7 +506,14 @@ def main():
         logger.info(bucket)
         blobs = bucket.list_blobs()
         logger.info(blobs)
+        logging.info("Listing all files in Firebase Storage bucket:")
 
+        file_count = 0
+        for blob in blobs:
+            logging.info(blob.name)
+            file_count += 1
+
+        logging.info(f"Total files: {file_count}")
         # For preview sessions, poll for configuration
         if session_id.startswith('preview_'):
             config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")

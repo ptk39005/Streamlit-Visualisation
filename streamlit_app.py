@@ -498,6 +498,13 @@ def main():
 
         # Load session data based on mode
         bucket = storage.bucket()
+
+        blobs = bucket.list_blobs()
+
+        logger.info("Files in bucket:")
+        for blob in blobs:
+            logger.info(blob.name)
+
         if not bucket:
             st.error("Cannot access storage bucket. Please verify your Firebase configuration.")
             logger.critical("Storage bucket is inaccessible in main function.")

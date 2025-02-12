@@ -479,6 +479,10 @@ def main():
     if isinstance(email, list):
         email = email[0]
 
+    logger.debug(f"Session ID: {session_id}")
+    logger.debug(f"Mode: {mode}")
+    logger.debug(f"Email: {email}")
+
     if not session_id:
         st.error("No session ID provided. Please provide a valid session ID in the URL.")
         logger.error("Session ID is missing from query parameters.")
@@ -500,9 +504,7 @@ def main():
 
 
         # Debug info (consider removing in production)
-        logger.debug(f"Session ID: {session_id}")
-        logger.debug(f"Mode: {mode}")
-        logger.debug(f"Email: {email}")
+    
 
         # For preview sessions, poll for configuration
         if session_id.startswith('preview_'):

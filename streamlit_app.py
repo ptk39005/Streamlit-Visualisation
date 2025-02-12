@@ -479,9 +479,9 @@ def main():
     if isinstance(email, list):
         email = email[0]
 
-    logger.debug(f"Session ID: {session_id}")
-    logger.debug(f"Mode: {mode}")
-    logger.debug(f"Email: {email}")
+    logger.log(f"Session ID: {session_id}")
+    logger.log(f"Mode: {mode}")
+    logger.log(f"Email: {email}")
 
     if not session_id:
         st.error("No session ID provided. Please provide a valid session ID in the URL.")

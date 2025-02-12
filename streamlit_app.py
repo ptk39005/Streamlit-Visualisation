@@ -391,8 +391,8 @@ def main():
     # Set page config as the first command
     # Get parameters from URL
     query_params = st.query_params
-    session_id = query_params.get("session_id", [None])
-    mode = query_params.get("mode", ["full"])  # 'preview' or 'full'
+    session_id = query_params.get("session_id", [None])[0]  # Get first item from list
+    mode = query_params.get("mode", ["full"])[0]  # Get first item from list
 
     if not session_id:
         st.error("No session ID provided")

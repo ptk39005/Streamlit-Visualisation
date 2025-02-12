@@ -422,7 +422,7 @@ def main():
         # Load session data from Firebase
         bucket = get_storage_bucket()
 
-        blobs = bucket.list_blobs(prefix="streamlit_sessions/preview_prateeklonari@gmail.com_1739374646/")
+        blobs = bucket.list_blobs(prefix="streamlit_sessions")
         for blob in blobs:
             st.info(blob.name)  # Print all available files in that session
 

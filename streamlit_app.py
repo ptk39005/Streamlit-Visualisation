@@ -405,8 +405,8 @@ def main():
             st.error("Could not access storage bucket. Please check your Firebase configuration.")
             return
 
-        # Debug information
-        st.debug(f"Attempting to access: streamlit_sessions/{session_id}/config.json")
+        # Log information (using st.write instead of debug)
+        st.write(f"Accessing configuration: streamlit_sessions/{session_id}/config.json")
         
         config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")
         if not config_blob.exists():
@@ -455,7 +455,8 @@ def main():
             
     except Exception as e:
         st.error(f"Error loading session data: {str(e)}")
-        st.error("Full error details:", exc_info=True)  # This will show the full traceback
+        # Using st.exception() for proper error display
+        st.exception(e)
 
 if __name__ == "__main__":
     main() 

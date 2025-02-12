@@ -387,6 +387,22 @@ class VisualizationSession:
                 chart_type, largest_items, colour_theme
             )
 
+def get_available_files(user_email):
+    """List available files for the user from Firebase Storage"""
+    bucket = get_storage_bucket()
+    if not bucket:
+        return []
+    
+    files = []
+    blobs = bucket.list_blobs(prefix=f"users/{user_email}/data/")
+    for blob in blobs:
+        # Extract just the filename from the full path
+        filename = blob.name.split('/')[-1]
+        if filename:  # Ensure we don't add empty strings
+            files.append(filename)
+    
+    return files
+
 def main():
     # Set page config as the first command
     # Get parameters from URL
@@ -417,6 +433,17 @@ def main():
         if not bucket:
             st.error("Could not access storage bucket. Please check your Firebase configuration.")
             return
+
+        # Display available files
+        st.header("Available Files")
+        if email:
+            files = get_available_files(email)
+            if files:
+                st.write("Your files:")
+                for file in files:
+                    st.write(f"- {file}")
+            else:
+                st.write("No files found in your storage.")
 
         # Debug info
         st.write(f"Session ID: {session_id}")

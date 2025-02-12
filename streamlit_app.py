@@ -498,7 +498,7 @@ def main():
 
         # Load session data based on mode
         bucket = storage.bucket()
-
+        logger.info(bucket)
         blobs = bucket.list_blobs()
 
         logger.info("Files in bucket:")
@@ -510,7 +510,7 @@ def main():
             logger.critical("Storage bucket is inaccessible in main function.")
             return    
         
-        logger.info(bucket)
+       
         
         # For preview sessions, poll for configuration
         if session_id.startswith('preview_'):

@@ -497,7 +497,7 @@ def main():
             return
 
         # Load session data based on mode
-        bucket = get_storage_bucket()
+        bucket = storage.bucket()
         if not bucket:
             st.error("Cannot access storage bucket. Please verify your Firebase configuration.")
             logger.critical("Storage bucket is inaccessible in main function.")

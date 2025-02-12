@@ -46,6 +46,15 @@ def initialize_firebase():
             # Explicitly initialize session state variables
             st.session_state.db = firestore.client()
             st.session_state.storage_bucket = storage.bucket()
+            client = storage.Client()
+            buckets = list(client.list_buckets())
+
+            if buckets:
+                st.info("✅ Available Firebase Storage Buckets:")
+                for bucket in buckets:
+                    st.info(f"📂 {bucket.name}")
+            else:
+                st.info("⚠️ No storage buckets found in this project.")
 
             st.session_state.firebase_initialized = True  # Set only if initialization succeeds
             st.success("Firebase initialized successfully.")

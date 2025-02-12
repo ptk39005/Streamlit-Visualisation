@@ -10,6 +10,17 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from firebase_admin.exceptions import FirebaseError
 import time
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 st.set_page_config(page_title="Visualization Creator", layout="wide")
 
@@ -40,16 +51,38 @@ def initialize_firebase():
             st.session_state.storage_bucket = storage.bucket()
 
             st.session_state.firebase_initialized = True  # Set only if initialization succeeds
+            logger.info("Firebase initialized successfully.")
             return True
         
+        except ValueError as ve:
+            st.error(f"Value error during Firebase initialization: {str(ve)}")
+            logger.error(f"ValueError: {str(ve)}")
+            return False
+        except FirebaseError as fe:
+            st.error(f"Firebase error during initialization: {str(fe)}")
+            logger.error(f"FirebaseError: {str(fe)}")
+            return False
+        except KeyError as ke:
+            st.error(f"Missing Firebase configuration key: {str(ke)}")
+            logger.error(f"KeyError: {str(ke)}")
+            return False
         except Exception as e:
-            st.error(f"Failed to initialize Firebase: {str(e)}")
+            st.error(f"Unexpected error during Firebase initialization: {str(e)}")
+            logger.exception("Unexpected error")
             return False
     
     # Ensure storage bucket is set even if Firebase is already initialized
     if 'storage_bucket' not in st.session_state:
-        st.session_state.storage_bucket = storage.bucket()
-
+        try:
+            st.session_state.storage_bucket = storage.bucket()
+            logger.info("Storage bucket accessed successfully.")
+        except FirebaseError as fe:
+            st.error(f"Firebase error accessing storage bucket: {str(fe)}")
+            logger.error(f"FirebaseError: {str(fe)}")
+        except Exception as e:
+            st.error(f"Unexpected error accessing storage bucket: {str(e)}")
+            logger.exception("Unexpected error")
+    
     return True
 
 
@@ -62,18 +95,28 @@ def get_firestore_client():
 def get_storage_bucket():
     """Ensure Firebase is initialized before accessing storage bucket"""
     if 'storage_bucket' not in st.session_state or st.session_state.storage_bucket is None:
-        st.warning("Storage bucket is missing. Reinitializing Firebase...")
+        st.warning("Storage bucket is missing or not initialized. Attempting to reinitialize Firebase...")
         if not initialize_firebase():  # Try to reinitialize Firebase
-            st.error("Firebase initialization failed. Cannot get storage bucket.")
+            st.error("Firebase initialization failed. Cannot access storage bucket.")
+            logger.error("Failed to initialize Firebase when accessing storage bucket.")
             return None  # Prevent further errors
-    
+
     try:
-        # Verify bucket exists and is accessible
         bucket = st.session_state.storage_bucket
-        bucket.exists()  # This will throw an exception if bucket is not accessible
+        if not bucket:
+            raise FirebaseError("Storage bucket is not set in session state.")
+        
+        # Verify bucket exists and is accessible
+        bucket.reload()  # This will throw an exception if the bucket does not exist or is inaccessible
+        logger.info("Storage bucket verified successfully.")
         return bucket
+    except FirebaseError as fe:
+        st.error(f"Firebase error accessing storage bucket: {str(fe)}")
+        logger.error(f"FirebaseError: {str(fe)}")
+        return None
     except Exception as e:
-        st.error(f"Error accessing storage bucket: {str(e)}")
+        st.error(f"Unexpected error accessing storage bucket: {str(e)}")
+        logger.exception("Unexpected error")
         return None
 
 class VisualizationSession:
@@ -391,17 +434,29 @@ def get_available_files(user_email):
     """List available files for the user from Firebase Storage"""
     bucket = get_storage_bucket()
     if not bucket:
+        logger.warning("Storage bucket is not available. Cannot list files.")
         return []
     
-    files = []
-    blobs = bucket.list_blobs(prefix=f"/")
-    for blob in blobs:
-        # Extract just the filename from the full path
-        filename = blob.name.split('/')[-1]
-        if filename:  # Ensure we don't add empty strings
-            files.append(filename)
-    
-    return files
+    try:
+        files = []
+        # Corrected prefix to target user-specific data
+        blobs = bucket.list_blobs(prefix=f"users/{user_email}/data/")
+        for blob in blobs:
+            # Extract just the filename from the full path
+            filename = blob.name.split('/')[-1]
+            if filename:  # Ensure we don't add empty strings
+                files.append(filename)
+        
+        logger.info(f"Retrieved {len(files)} files for user {user_email}.")
+        return files
+    except FirebaseError as fe:
+        st.error(f"Firebase error while listing files: {str(fe)}")
+        logger.error(f"FirebaseError: {str(fe)}")
+        return []
+    except Exception as e:
+        st.error(f"Unexpected error while listing files: {str(e)}")
+        logger.exception("Unexpected error")
+        return []
 
 def main():
     # Set page config as the first command
@@ -424,34 +479,32 @@ def main():
         email = email[0]
 
     if not session_id:
-        st.error("No session ID provided")
+        st.error("No session ID provided. Please provide a valid session ID in the URL.")
+        logger.error("Session ID is missing from query parameters.")
         return
     
     try:
-        # Load session data from Firebase
-        bucket = get_storage_bucket()
-        if not bucket:
-            st.error("Could not access storage bucket. Please check your Firebase configuration.")
+        # Initialize Firebase
+        if not initialize_firebase():
+            st.error("Failed to initialize Firebase. Please check your configuration.")
+            logger.critical("Firebase initialization failed in main function.")
             return
 
-        # Display available files
-        st.header("Available Files")
-        if email:
-            files = get_available_files(email)
-            if files:
-                st.write("Your files:")
-                for file in files:
-                    st.write(f"- {file}")
-            else:
-                st.write("No files found in your storage.")
+        # Load session data based on mode
+        bucket = get_storage_bucket()
+        if not bucket:
+            st.error("Cannot access storage bucket. Please verify your Firebase configuration.")
+            logger.critical("Storage bucket is inaccessible in main function.")
+            return
 
-        # Debug info
-        st.write(f"Session ID: {session_id}")
-        st.write(f"Mode: {mode}")
-        st.write(f"Email: {email}")
+
+        # Debug info (consider removing in production)
+        logger.debug(f"Session ID: {session_id}")
+        logger.debug(f"Mode: {mode}")
+        logger.debug(f"Email: {email}")
 
         # For preview sessions, poll for configuration
-        if session_id and session_id.startswith('preview_'):
+        if session_id.startswith('preview_'):
             config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")
             start_time = time.time()
             config_found = False
@@ -461,23 +514,32 @@ def main():
                     if config_blob.exists():
                         config_found = True
                         session_data = json.loads(config_blob.download_as_string())
+                        logger.info("Configuration found for preview session.")
                         break
                     time.sleep(1)  # Wait 1 second before next check
-                
-                if not config_found:
-                    st.error("Configuration not found after 15 seconds. Please try again.")
-                    return
+            
+            if not config_found:
+                st.error("Configuration not found after 15 seconds. Please try again.")
+                logger.warning("Configuration not found within timeout period.")
+                return
         else:
             # For non-preview sessions, load existing config
-            st.write(f"Accessing configuration: streamlit_sessions/{session_id}/config.json")
             config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")
             if not config_blob.exists():
                 st.error(f"Configuration file not found for session: {session_id}")
+                logger.error(f"Configuration file does not exist for session: {session_id}")
                 return
             session_data = json.loads(config_blob.download_as_string())
+            logger.info("Configuration loaded for full session.")
 
         # Initialize visualization session with email from query params if available
         viz_session = VisualizationSession(email or session_data.get("email"))
+        
+        # Placeholder for DataFrame (Assuming 'df' is loaded elsewhere; handle if not)
+        df = pd.DataFrame()  # Update this as per your actual data loading mechanism
+        if df.empty:
+            st.warning("DataFrame is empty. Please ensure data is loaded correctly.")
+            logger.warning("DataFrame is empty in main function.")
         
         if mode == "preview":
             # For preview, just render the visualization based on config
@@ -486,9 +548,15 @@ def main():
             # For full mode, render the full interface
             viz_session.render_visualization_interface(df)
             
+    except FirebaseError as fe:
+        st.error(f"Firebase error in main function: {str(fe)}")
+        logger.error(f"FirebaseError: {str(fe)}")
+    except json.JSONDecodeError as je:
+        st.error(f"Error decoding JSON configuration: {str(je)}")
+        logger.error(f"JSONDecodeError: {str(je)}")
     except Exception as e:
-        st.error(f"Error loading session data: {str(e)}")
-        st.exception(e)
+        st.error(f"An unexpected error occurred: {str(e)}")
+        logger.exception("Unexpected error in main function")
 
 if __name__ == "__main__":
     main() 

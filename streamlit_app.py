@@ -408,7 +408,7 @@ def main():
         # Load data
         if mode == "preview":
             # For preview, load data directly from session storage
-            data_blob = bucket.blob(f"streamlit_sessions/{session_id]}/data.csv")
+            data_blob = bucket.blob(f"streamlit_sessions/{session_id}/data.csv")
             df = pd.read_csv(BytesIO(data_blob.download_as_bytes()))
         else:
             # For full mode, load from original file

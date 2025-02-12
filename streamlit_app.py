@@ -397,13 +397,13 @@ def main():
 
         st.info(f"Using bucket: {bucket.name}")
 
-        config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")
+        config_blob = bucket.blob(f"streamlit_sessions/{session_id[0]}/config.json")
         session_data = json.loads(config_blob.download_as_string())
         
         # Load data
         if mode == "preview":
             # For preview, load data directly from session storage
-            data_blob = bucket.blob(f"streamlit_sessions/{session_id}/data.csv")
+            data_blob = bucket.blob(f"streamlit_sessions/{session_id[0]}/data.csv")
             df = pd.read_csv(BytesIO(data_blob.download_as_bytes()))
         else:
             # For full mode, load from original file

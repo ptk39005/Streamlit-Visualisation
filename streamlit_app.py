@@ -397,10 +397,10 @@ def main():
 
         st.info(f"Using bucket: {bucket.name}")
         st.info(f"session : {session_id}")
-        config_blob = bucket.blob(f"streamlit_sessions/{session_id[0]}/config.json")
+        config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")
 
         if not config_blob.exists():
-            st.error(f"Config file not found: streamlit_sessions/{session_id[0]}/config.json")
+            st.error(f"Config file not found: streamlit_sessions/{session_id}/config.json")
             return
         
         session_data = json.loads(config_blob.download_as_string())
@@ -408,7 +408,7 @@ def main():
         # Load data
         if mode == "preview":
             # For preview, load data directly from session storage
-            data_blob = bucket.blob(f"streamlit_sessions/{session_id[0]}/data.csv")
+            data_blob = bucket.blob(f"streamlit_sessions/{session_id]}/data.csv")
             df = pd.read_csv(BytesIO(data_blob.download_as_bytes()))
         else:
             # For full mode, load from original file

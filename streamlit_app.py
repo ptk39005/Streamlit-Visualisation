@@ -12,82 +12,53 @@ from firebase_admin.exceptions import FirebaseError
 
 st.set_page_config(page_title="Visualization Creator", layout="wide")
 
-import streamlit as st
 import firebase_admin
-from firebase_admin import credentials, firestore, storage
+from firebase_admin import credentials, firestore
+from google.cloud import storage  # Correct import
 
 def initialize_firebase():
     """Initialize Firebase if not already initialized"""
     if not firebase_admin._apps:
         try:
-            # Ensure secrets are available before using them
+            # Ensure Firebase secrets are available
             if "firebase_service_account" not in st.secrets:
-                st.error("Firebase credentials are missing in Streamlit secrets.")
+                st.error("❌ Firebase credentials are missing in Streamlit secrets.")
                 return False
-
+            
+            # Parse credentials from Streamlit secrets
             service_account = dict(st.secrets["firebase_service_account"])
 
-            # Validate critical keys
-            required_keys = [
-                "type", "project_id", "private_key_id", "private_key", "client_email",
-                "client_id", "auth_uri", "token_uri", "auth_provider_x509_cert_url", "client_x509_cert_url"
-            ]
-            for key in required_keys:
-                if key not in service_account:
-                    st.error(f"Missing Firebase credential key: {key}")
-                    return False
-
-            # Initialize Firebase with the correct credentials
+            # Initialize Firebase Admin SDK
             cred = credentials.Certificate(service_account)
-            firebase_admin.initialize_app(cred, {
-                'storageBucket': 'file-processing-app.firebasestorage.app'
-            })
+            firebase_admin.initialize_app(cred)
 
-            # Explicitly initialize session state variables
-            st.info("Firestore.client() done")
+            # Initialize Firestore
             st.session_state.db = firestore.client()
-            st.info("storage.bucket done")
+            st.info("✅ Firestore client initialized.")
 
-            st.session_state.storage_bucket = storage.bucket()
-            client = storage.Client()
-            buckets = list(client.list_buckets())
+            # ✅ Correct way to initialize Google Cloud Storage
+            storage_client = storage.Client.from_service_account_info(service_account)  
+            bucket_name = "file-processing-app.firebasestorage.app"  # Ensure bucket name is correct
+            st.session_state.storage_bucket = storage_client.bucket(bucket_name)
 
-            if buckets:
-                st.info("✅ Available Firebase Storage Buckets:")
-                for bucket in buckets:
-                    st.info(f"📂 {bucket.name}")
-            else:
-                st.info("⚠️ No storage buckets found in this project.")
-
-            st.session_state.firebase_initialized = True  # Set only if initialization succeeds
-            st.success("Firebase initialized successfully.")
+            st.success(f"✅ Firebase Storage initialized with bucket: {st.session_state.storage_bucket.name}")
             return True
 
-        except firebase_admin.exceptions.FirebaseError as fe:
-            st.error(f"FirebaseError: {fe}")
-            print(f"[ERROR] FirebaseError: {fe}")
-            return False
-
-        except ValueError as ve:
-            st.error(f"Invalid Firebase configuration: {ve}")
-            print(f"[ERROR] ValueError (Invalid Config): {ve}")
-            return False
-
         except Exception as e:
-            st.error(f"Failed to initialize Firebase: {str(e)}")
-            print(f"[ERROR] Unexpected error initializing Firebase: {e}")
+            st.error(f"🔥 Firebase initialization failed: {e}")
             return False
 
     # Ensure storage bucket is set even if Firebase is already initialized
     if 'storage_bucket' not in st.session_state:
         try:
-            st.session_state.storage_bucket = storage.bucket()
+            storage_client = storage.Client.from_service_account_info(st.secrets["firebase_service_account"])
+            st.session_state.storage_bucket = storage_client.bucket("file-processing-app.firebasestorage.app")
         except Exception as e:
-            st.error(f"Error accessing Firebase Storage: {e}")
-            print(f"[ERROR] Firebase Storage access error: {e}")
+            st.error(f"🔥 Error initializing Firebase Storage: {e}")
             return False
 
     return True
+
 
 
 

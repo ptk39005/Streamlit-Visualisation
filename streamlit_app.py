@@ -391,8 +391,21 @@ def main():
     # Set page config as the first command
     # Get parameters from URL
     query_params = st.query_params
-    session_id = query_params.get("session_id", [None])[0]  # Get first item from list
-    mode = query_params.get("mode", ["full"])[0]  # Get first item from list
+    
+    # Get and validate session_id
+    session_id = query_params.get("session_id")
+    if isinstance(session_id, list):
+        session_id = session_id[0]
+    
+    # Get and validate mode
+    mode = query_params.get("mode", "full")
+    if isinstance(mode, list):
+        mode = mode[0]
+    
+    # Get and validate email
+    email = query_params.get("email")
+    if isinstance(email, list):
+        email = email[0]
 
     if not session_id:
         st.error("No session ID provided")
@@ -405,8 +418,13 @@ def main():
             st.error("Could not access storage bucket. Please check your Firebase configuration.")
             return
 
+        # Debug info
+        st.write(f"Session ID: {session_id}")
+        st.write(f"Mode: {mode}")
+        st.write(f"Email: {email}")
+
         # For preview sessions, poll for configuration
-        if session_id.startswith('preview_'):
+        if session_id and session_id.startswith('preview_'):
             config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")
             start_time = time.time()
             config_found = False
@@ -430,13 +448,13 @@ def main():
                 st.error(f"Configuration file not found for session: {session_id}")
                 return
             session_data = json.loads(config_blob.download_as_string())
-        
-        # Initialize visualization session
-        viz_session = VisualizationSession(session_data["email"])
+
+        # Initialize visualization session with email from query params if available
+        viz_session = VisualizationSession(email or session_data.get("email"))
         
         if mode == "preview":
             # For preview, just render the visualization based on config
-            viz_session.render_preview(df, session_data["visualizationConfig"])
+            viz_session.render_preview(df, session_data.get("visualizationConfig", {}))
         else:
             # For full mode, render the full interface
             viz_session.render_visualization_interface(df)

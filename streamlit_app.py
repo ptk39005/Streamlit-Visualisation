@@ -509,7 +509,7 @@ def main():
         # For preview sessions, poll for configuration
         if session_id.startswith('preview_'):
             config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")
-            logger.info(config_blob)
+            logger.info(f"streamlit_sessions/{session_id}/config.json")
             start_time = time.time()
             config_found = False
             

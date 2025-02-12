@@ -434,10 +434,6 @@ def main():
         # Load session data from Firebase
         bucket = get_storage_bucket()
 
-        blobs = bucket.list_blobs()
-        for blob in blobs:
-            st.info(blob.name)  # Print all available files in that session
-
         st.info(f"Using bucket: {bucket.name}")
         st.info(f"session : {session_id}")
         config_blob = bucket.blob(f"streamlit_sessions/{session_id}/config.json")

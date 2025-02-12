@@ -45,7 +45,9 @@ def initialize_firebase():
 
             # Explicitly initialize session state variables
             st.session_state.db = firestore.client()
+            st.info("Firestore.client() done")
             st.session_state.storage_bucket = storage.bucket()
+            st.info("storage.bucket done")
             client = storage.Client()
             buckets = list(client.list_buckets())
 

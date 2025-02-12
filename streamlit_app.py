@@ -483,6 +483,7 @@ def main():
     logger.info(f"Mode: {mode}")
     logger.info(f"Email: {email}")
 
+
     if not session_id:
         st.error("No session ID provided. Please provide a valid session ID in the URL.")
         logger.error("Session ID is missing from query parameters.")
@@ -500,11 +501,11 @@ def main():
         if not bucket:
             st.error("Cannot access storage bucket. Please verify your Firebase configuration.")
             logger.critical("Storage bucket is inaccessible in main function.")
-            return
-
-
-        # Debug info (consider removing in production)
-    
+            return    
+        
+        logger.info(bucket)
+        blobs = bucket.list_blobs()
+        logger.info(blobs)
 
         # For preview sessions, poll for configuration
         if session_id.startswith('preview_'):

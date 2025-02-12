@@ -43,7 +43,7 @@ def initialize_firebase():
             }
             cred = credentials.Certificate(service_account)
             firebase_admin.initialize_app(cred, {
-    'storageBucket': 'file-processing-app.firebasestorage.app'  # ✅ Correct
+    'storageBucket': 'file-processing-app'
 })
 
 
